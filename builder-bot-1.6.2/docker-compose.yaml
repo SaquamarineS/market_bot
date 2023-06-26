@@ -1,0 +1,47 @@
+version: '3.8'
+
+volumes:
+  wildfly_logs_builder:
+    name: wildfly_logs_builder
+  sqlite_data:
+    name: sqlite_data
+  postgres_data:
+    name: postgres_data
+
+services:
+  db:
+    image: postgres:14.2
+    container_name: postgres
+    restart: always
+    volumes:
+      - path_to_init_script/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      TZ: Europe/Moscow
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: builder
+      PGDATA: /var/lib/postgresql/data/db
+
+  builder-bot:
+    build: .
+    restart: always
+    ports:
+      - "8080:8080"
+      - "9990:9990"
+    environment:
+      - TZ=Europe/Moscow
+      - builder_botName=
+      - builder_botToken=
+      - builder_tech_channelId=
+      - shopId=
+      - secret_key=
+    volumes:
+      - wildfly_logs_builder:/opt/jboss/wildfly/standalone/log
+      - sqlite_data:/opt/jboss/sqlite
+    container_name: builder-bot
+    depends_on:
+      - db
+
+networks:
+  default:
+    name: redis-network
